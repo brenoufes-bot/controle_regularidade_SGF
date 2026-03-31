@@ -1,1 +1,39 @@
+name: Controle Regularidade SGF
 
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: "0 11 * * *"
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+
+    env:
+      SGF_USUARIO: ${{ secrets.SGF_USUARIO }}
+      SGF_SENHA: ${{ secrets.SGF_SENHA }}
+      GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+      SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+      SPREADSHEET_ABA: Validade CNDs
+      HEADLESS: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar Google Chrome
+        uses: browser-actions/setup-chrome@v1
+
+      - name: Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Rodar script
+        run: |
+          python controle_regularidade_SGF_V6_4.py
