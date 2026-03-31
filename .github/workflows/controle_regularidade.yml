@@ -14,7 +14,6 @@ jobs:
       SGF_SENHA: ${{ secrets.SGF_SENHA }}
       GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
       SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
-      SPREADSHEET_ABA: Validade CNDs
       HEADLESS: true
 
     steps:
@@ -36,4 +35,4 @@ jobs:
 
       - name: Rodar script
         run: |
-          python controle_regularidade_SGF_V6_4.py
+          python controle_regularidade_SGF_GITHUB.py
