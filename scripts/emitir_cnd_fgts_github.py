@@ -7,6 +7,7 @@ import os
 import re
 import sys
 import time
+import traceback
 from pathlib import Path
 
 from selenium import webdriver
@@ -87,7 +88,7 @@ def limpar_arquivo_destino(destino_final: Path) -> None:
         destino_final.unlink()
 
 
-def renomear_arquivo_pdf(timeout_segundos: int = 30) -> Path | None:
+def renomear_arquivo_pdf(timeout_segundos: int = 40) -> Path | None:
     destino_final = (PASTA_SALVAR / NOME_ARQUIVO).resolve()
 
     limpar_arquivo_destino(destino_final)
@@ -99,6 +100,7 @@ def renomear_arquivo_pdf(timeout_segundos: int = 30) -> Path | None:
         arquivos_crdownload = list(PASTA_SALVAR.glob("*.crdownload"))
 
         if arquivos_crdownload:
+            print("Arquivo ainda em download (.crdownload)... aguardando")
             time.sleep(1)
             continue
 
@@ -109,6 +111,7 @@ def renomear_arquivo_pdf(timeout_segundos: int = 30) -> Path | None:
 
         if candidatos:
             arquivo_gerado = max(candidatos, key=lambda p: p.stat().st_mtime)
+            print(f"Arquivo PDF gerado encontrado: {arquivo_gerado}")
             arquivo_gerado.rename(destino_final)
             return destino_final
 
@@ -170,7 +173,7 @@ def emitir_cnd_fgts_github(cnpj: str = CNPJ) -> dict:
         esperar_clicavel(wait, By.ID, "mainForm:btnConsultar").click()
 
         print("4) Clicando no link do CRF...")
-        esperar_clicavel(wait, By.ID, "mainForm:j_id51").click()
+        esperar_clicavel(wait, By.XPATH, "//a[contains(.,'CRF')]").click()
 
         print("5) Capturando validade final...")
         validade = extrair_validade_da_pagina(driver)
@@ -181,6 +184,11 @@ def emitir_cnd_fgts_github(cnpj: str = CNPJ) -> dict:
 
         print("7) Aguardando tela antes de imprimir...")
         esperar_clicavel(wait, By.XPATH, "//input[@value='Imprimir']")
+
+        print("Página carregada, verificando conteúdo...")
+        texto = driver.execute_script("return document.body.innerText;") or ""
+        print("Trecho da página:")
+        print(texto[:500])
 
         print("8) Clicando em Imprimir...")
         esperar_clicavel(wait, By.XPATH, "//input[@value='Imprimir']").click()
@@ -204,13 +212,27 @@ def emitir_cnd_fgts_github(cnpj: str = CNPJ) -> dict:
         }
 
     except TimeoutException as e:
-        print("\nTimeout: algum elemento esperado não apareceu a tempo.")
+        print("\nTIMEOUT NA AUTOMAÇÃO")
         print(f"Detalhe técnico: {e}")
+        print("\nHTML atual (primeiros 1500 caracteres):")
+        try:
+            html = driver.page_source or ""
+            print(html[:1500])
+        except Exception:
+            print("Não foi possível ler o HTML atual.")
+        traceback.print_exc()
         raise
 
     except Exception as e:
-        print("\nErro inesperado durante a automação.")
+        print("\nERRO INESPERADO DURANTE A AUTOMAÇÃO")
         print(f"Detalhe técnico: {e}")
+        print("\nHTML atual (primeiros 1500 caracteres):")
+        try:
+            html = driver.page_source or ""
+            print(html[:1500])
+        except Exception:
+            print("Não foi possível ler o HTML atual.")
+        traceback.print_exc()
         raise
 
     finally:
