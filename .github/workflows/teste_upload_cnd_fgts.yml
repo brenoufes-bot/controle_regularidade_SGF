@@ -1,0 +1,47 @@
+name: Teste Upload CND FGTS
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run-upload-teste:
+    runs-on: ubuntu-latest
+
+    env:
+      SGF_USUARIO: ${{ secrets.SGF_USUARIO }}
+      SGF_SENHA: ${{ secrets.SGF_SENHA }}
+      CND_PDF_PATH: CND_FGTS.pdf
+      HEADLESS: true
+      UFS_ALVO: RJ
+      TIMEOUT: 30
+
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+
+      - name: Instalar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar Google Chrome
+        uses: browser-actions/setup-chrome@v1
+
+      - name: Mostrar versão do Chrome
+        run: google-chrome --version
+
+      - name: Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Verificar arquivos do repositório
+        run: |
+          echo "Listando arquivos:"
+          ls -R
+          echo ""
+          echo "Verificando PDF de teste:"
+          test -f CND_FGTS.pdf && echo "PDF encontrado" || echo "PDF NAO encontrado"
+
+      - name: Rodar upload CND FGTS em modo cancelar
+        run: python scripts/upload_cnd_fgts_github_cancelar.py
