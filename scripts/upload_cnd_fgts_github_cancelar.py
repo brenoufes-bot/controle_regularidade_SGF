@@ -41,7 +41,11 @@ TIMEOUT = int(os.getenv("TIMEOUT", "30"))
 HEADLESS = os.getenv("HEADLESS", "true").lower() == "true"
 
 PDF_PADRAO = str(Path.cwd() / "CND_FGTS.pdf")
+
 CAMINHO_PDF = os.getenv("CND_PDF_PATH") or os.getenv("PDF_PATH", PDF_PADRAO)
+
+# 🔥 CONVERSÃO PARA CAMINHO ABSOLUTO (ESSENCIAL PARA SELENIUM)
+CAMINHO_PDF = str(Path(CAMINHO_PDF).resolve())
 
 UFS_PADRAO = [
     uf.strip().upper()
