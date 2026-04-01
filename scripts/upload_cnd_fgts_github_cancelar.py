@@ -12,9 +12,10 @@
 #   SGF_USUARIO
 #   SGF_SENHA
 # Opcionais:
-#   CND_PDF_PATH         -> caminho do PDF (default: ./CND_FGTS.pdf)
-#   HEADLESS             -> true/false (default: true)
-#   UFS_ALVO             -> ex: RJ,TO,SP  (default: RJ,TO,SP)
+#   CND_PDF_PATH / PDF_PATH  -> caminho do PDF (default: ./CND_FGTS.pdf)
+#   HEADLESS                 -> true/false (default: true)
+#   UFS_ALVO                 -> ex: RJ,TO,SP  (default: RJ,TO,SP)
+#   TIMEOUT                  -> default: 30
 
 from __future__ import annotations
 
@@ -40,7 +41,7 @@ TIMEOUT = int(os.getenv("TIMEOUT", "30"))
 HEADLESS = os.getenv("HEADLESS", "true").lower() == "true"
 
 PDF_PADRAO = str(Path.cwd() / "CND_FGTS.pdf")
-CAMINHO_PDF = os.getenv("CND_PDF_PATH", PDF_PADRAO)
+CAMINHO_PDF = os.getenv("CND_PDF_PATH") or os.getenv("PDF_PATH", PDF_PADRAO)
 
 UFS_PADRAO = [
     uf.strip().upper()
@@ -50,14 +51,21 @@ UFS_PADRAO = [
 
 
 def validar_configuracao() -> None:
+    print("=" * 70)
+    print("VALIDANDO CONFIGURAÇÕES")
+    print("=" * 70)
+    print(f"Diretório atual: {Path.cwd()}")
+    print(f"HEADLESS: {HEADLESS}")
+    print(f"TIMEOUT: {TIMEOUT}")
+    print(f"PDF configurado: {CAMINHO_PDF}")
+    print(f"UFs alvo: {UFS_PADRAO}")
+
     faltando = []
 
     if not USUARIO:
         faltando.append("SGF_USUARIO")
     if not SENHA:
         faltando.append("SGF_SENHA")
-    if not CAMINHO_PDF:
-        faltando.append("CND_PDF_PATH")
 
     if faltando:
         raise RuntimeError(
@@ -67,8 +75,15 @@ def validar_configuracao() -> None:
     if not Path(CAMINHO_PDF).exists():
         raise FileNotFoundError(f"PDF não encontrado em:\n{CAMINHO_PDF}")
 
+    print("Configuração validada com sucesso.")
+
 
 def extrair_data_validade(pdf_path: str) -> str:
+    print("=" * 70)
+    print("EXTRAINDO DATA DE VALIDADE DO PDF")
+    print("=" * 70)
+    print(f"Lendo PDF: {pdf_path}")
+
     doc = fitz.open(pdf_path)
     try:
         texto = "".join(p.get_text() for p in doc)
@@ -99,6 +114,10 @@ def extrair_data_validade(pdf_path: str) -> str:
 
 
 def criar_driver() -> webdriver.Chrome:
+    print("=" * 70)
+    print("CRIANDO DRIVER CHROME")
+    print("=" * 70)
+
     opts = webdriver.ChromeOptions()
 
     if HEADLESS:
@@ -110,7 +129,10 @@ def criar_driver() -> webdriver.Chrome:
         opts.add_argument("--start-maximized")
 
     opts.add_argument("--disable-gpu")
-    return webdriver.Chrome(options=opts)
+
+    driver = webdriver.Chrome(options=opts)
+    print("Driver Chrome criado com sucesso.")
+    return driver
 
 
 def esperar(driver: webdriver.Chrome, by: By, seletor: str, timeout: int = TIMEOUT):
@@ -155,6 +177,9 @@ def fazer_login(driver: webdriver.Chrome) -> None:
         "https://sgf.sebrae.com.br/Credenciado/Login.aspx"
     )
 
+    print("=" * 70)
+    print("LOGIN NO SGF")
+    print("=" * 70)
     print("Abrindo página de login...")
     driver.get(login_url)
 
@@ -169,6 +194,7 @@ def fazer_login(driver: webdriver.Chrome) -> None:
 
     print("Aguardando combo de UF...")
     esperar(driver, By.ID, "lgvLogin_ddlUFContext")
+    print("Login concluído com sucesso.")
 
 
 def selecionar_uf(driver: webdriver.Chrome, uf: str) -> None:
@@ -195,6 +221,7 @@ def localizar_linha_fgts(driver: webdriver.Chrome):
         try:
             texto_linha = linha.text.lower()
             if "fgts" in texto_linha and "comprovante de regularidade" in texto_linha:
+                print("Linha do FGTS localizada.")
                 return linha
         except Exception:
             pass
@@ -223,6 +250,7 @@ def localizar_modal_anexo(driver: webdriver.Chrome):
     for c in candidatos:
         try:
             if c.is_displayed():
+                print("Janela de anexação localizada.")
                 return c
         except Exception:
             pass
@@ -262,6 +290,7 @@ def localizar_campo_data(driver: webdriver.Chrome, contexto):
     if not campos_texto:
         raise RuntimeError("Não encontrei o campo de data de validade na janela.")
 
+    print("Campo de data localizado.")
     return campos_texto[0]
 
 
@@ -280,6 +309,7 @@ def localizar_campo_arquivo(driver: webdriver.Chrome, contexto):
     if not campos_arquivo:
         raise RuntimeError("Não encontrei o campo de seleção de arquivo na janela.")
 
+    print("Campo de arquivo localizado.")
     return campos_arquivo[0]
 
 
@@ -296,6 +326,7 @@ def localizar_botao_anexar(driver: webdriver.Chrome, contexto):
             elementos = contexto.find_elements(By.XPATH, xp)
             visiveis = [e for e in elementos if e.is_displayed()]
             if visiveis:
+                print(f"Botão Anexar localizado no contexto com XPath: {xp}")
                 return visiveis[0]
         except Exception:
             pass
@@ -312,6 +343,7 @@ def localizar_botao_anexar(driver: webdriver.Chrome, contexto):
             elementos = driver.find_elements(By.XPATH, xp)
             visiveis = [e for e in elementos if e.is_displayed()]
             if visiveis:
+                print(f"Botão Anexar localizado globalmente com XPath: {xp}")
                 return visiveis[0]
         except Exception:
             pass
@@ -461,7 +493,7 @@ def upload_cnd_fgts_github_cancelar(
     print("=" * 70)
     print("UPLOAD CND FGTS - GITHUB - MODO CANCELAR")
     print("=" * 70)
-    print(f"PDF localizado:\n{caminho_pdf}")
+    print(f"PDF localizado: {caminho_pdf}")
 
     data_validade = extrair_data_validade(caminho_pdf)
     print(f"Data FINAL de validade usada no SGF: {data_validade}")
@@ -491,6 +523,7 @@ def upload_cnd_fgts_github_cancelar(
         if driver is not None:
             try:
                 driver.quit()
+                print("Driver encerrado com sucesso.")
             except Exception:
                 pass
 
