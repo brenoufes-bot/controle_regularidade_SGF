@@ -1,0 +1,55 @@
+name: Teste Emissao CND FGTS
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run-emissao-teste:
+    runs-on: ubuntu-latest
+
+    env:
+      CNPJ_EMISSAO: "06372941000132"
+      HEADLESS: true
+      TIMEOUT: 30
+      PASTA_SALVAR: .
+      NOME_ARQUIVO_PDF: CND_FGTS_emitida.pdf
+
+    steps:
+      - name: Baixar repositorio
+        uses: actions/checkout@v4
+
+      - name: Instalar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar Google Chrome
+        uses: browser-actions/setup-chrome@v1
+
+      - name: Mostrar versao do Chrome
+        run: google-chrome --version
+
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Rodar emissao da CND FGTS
+        run: python scripts/emitir_cnd_fgts_github.py
+
+      - name: Verificar arquivo gerado
+        if: always()
+        run: |
+          echo "Listando arquivos da raiz:"
+          ls -lah
+          echo ""
+          echo "Procurando PDF emitido:"
+          test -f CND_FGTS_emitida.pdf && echo "PDF emitido encontrado" || echo "PDF emitido NAO encontrado"
+
+      - name: Salvar PDF como artefato
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cnd-fgts-emitida
+          path: CND_FGTS_emitida.pdf
+          if-no-files-found: warn
