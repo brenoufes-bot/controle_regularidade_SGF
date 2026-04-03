@@ -52,20 +52,20 @@ jobs:
       SCRIPT_LOCAL_FGTS_2: C:\Users\breno\OneDrive\Gestao Financeira SPM\CNDs\FGTS\script_FGTS_2_V1_.py
     steps:
       - name: Info
-        shell: powershell
+        shell: cmd
         run: |
-          Write-Host "Disparando execução local FGTS"
-          Write-Host "Valor lido na planilha: ${{ needs.verificar_gatilho.outputs.valor_lido }}"
+          echo Disparando execucao local FGTS
+          echo Valor lido na planilha: ${{ needs.verificar_gatilho.outputs.valor_lido }}
 
-      - name: Validar existência do script local
-        shell: powershell
+      - name: Validar existencia do script local
+        shell: cmd
         run: |
-          if (-not (Test-Path $env:SCRIPT_LOCAL_FGTS_2)) {
-            Write-Error "Script local não encontrado: $env:SCRIPT_LOCAL_FGTS_2"
-            exit 1
-          }
+          if not exist "%SCRIPT_LOCAL_FGTS_2%" (
+            echo Script local nao encontrado: %SCRIPT_LOCAL_FGTS_2%
+            exit /b 1
+          )
 
       - name: Rodar Script Local
-        shell: powershell
+        shell: cmd
         run: |
-          python "$env:SCRIPT_LOCAL_FGTS_2"
+          python "%SCRIPT_LOCAL_FGTS_2%"
